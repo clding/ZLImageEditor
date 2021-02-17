@@ -167,6 +167,7 @@ public class ZLEditImageViewController: UIViewController {
     }
     
     @objc public var editFinishBlock: ( (UIImage, ZLEditImageModel) -> Void )?
+    @objc public var editCancelBlock: ( () -> Void )?
     
     public override var prefersStatusBarHidden: Bool {
         return true
@@ -180,7 +181,7 @@ public class ZLEditImageViewController: UIViewController {
         zl_debugPrint("ZLEditImageViewController deinit")
     }
     
-    @objc public class func showEditImageVC(parentVC: UIViewController?, animate: Bool = true, image: UIImage, editModel: ZLEditImageModel? = nil, completion: ( (UIImage, ZLEditImageModel) -> Void )? ) {
+    @objc public class func showEditImageVC(parentVC: UIViewController?, animate: Bool = true, image: UIImage, editModel: ZLEditImageModel? = nil, completion: ( (UIImage, ZLEditImageModel) -> Void )? , cancelBlock: (() -> Void)? = nil) {
         let tools = ZLImageEditorConfiguration.default().editImageTools
         if ZLImageEditorConfiguration.default().showClipDirectlyIfOnlyHasClipTool, tools.count == 1, tools.contains(.clip) {
             let vc = ZLClipImageViewController(image: image, editRect: editModel?.editRect, angle: editModel?.angle ?? 0, selectRatio: editModel?.selectRatio)
@@ -195,6 +196,9 @@ public class ZLEditImageViewController: UIViewController {
             let vc = ZLEditImageViewController(image: image, editModel: editModel)
             vc.editFinishBlock = {  (ei, editImageModel) in
                 completion?(ei, editImageModel)
+            }
+            vc.editCancelBlock = {
+                cancelBlock?()
             }
             vc.animateDismiss = animate
             vc.modalPresentationStyle = .fullScreen
@@ -273,7 +277,8 @@ public class ZLEditImageViewController: UIViewController {
         
         self.topShadowView.frame = CGRect(x: 0, y: 0, width: self.view.frame.width, height: 150)
         self.topShadowLayer.frame = self.topShadowView.bounds
-        self.cancelBtn.frame = CGRect(x: 30, y: insets.top+10, width: 28, height: 28)
+        let offsetY: CGFloat = insets.top > 0 ? 10 : 16
+        self.cancelBtn.frame = CGRect(x: 20, y: insets.top+offsetY, width: 28, height: 28)
         
         self.bottomShadowView.frame = CGRect(x: 0, y: self.view.frame.height-140-insets.bottom, width: self.view.frame.width, height: 140+insets.bottom)
         self.bottomShadowLayer.frame = self.bottomShadowView.bounds
@@ -403,7 +408,7 @@ public class ZLEditImageViewController: UIViewController {
         self.topShadowView.layer.addSublayer(self.topShadowLayer)
         
         self.cancelBtn = UIButton(type: .custom)
-        self.cancelBtn.setImage(getImage("zl_retake"), for: .normal)
+        self.cancelBtn.setImage(getImage("zl_close"), for: .normal)
         self.cancelBtn.addTarget(self, action: #selector(cancelBtnClick), for: .touchUpInside)
         self.cancelBtn.adjustsImageWhenHighlighted = false
         self.cancelBtn.zl_enlargeValidTouchArea(inset: 30)
@@ -568,6 +573,7 @@ public class ZLEditImageViewController: UIViewController {
     }
     
     @objc func cancelBtnClick() {
+        self.editCancelBlock?()
         self.dismiss(animated: self.animateDismiss, completion: nil)
     }
     
